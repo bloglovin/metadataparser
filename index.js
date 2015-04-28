@@ -9,16 +9,11 @@ var cheerio = require('cheerio');
 var request = require('request');
 var pkg = require('./package.json');
 var AWS, sqs;
-var defaultUserAgent = 'Parselovin/' + pkg.version;
 
 request = request.defaults({
   pool: {maxSockets: Infinity},
   timeout: 8000,
   followRedirect: false,
-  headers: {
-    'User-Agent' : defaultUserAgent,
-    'Accept' : 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
-  },
 });
 
 var ogTypes = [
@@ -49,6 +44,13 @@ var sendAWSResponse = function (aws, result, callback) {
     }
     callback();
   });
+};
+
+var createRequestHeaders = function (options) {
+  return {
+    'User-Agent' : ((options.userAgent || '') + ' Parselovin/' + pkg.version).trim(),
+    'Accept' : 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+  };
 };
 
 var isEmptyObject = function (obj) {
@@ -237,8 +239,18 @@ var extract = function (url, html) {
 
   return data;
 };
-var fetch = function (url, meta, callback) {
-  request(url, function (err, res, body) {
+var fetch = function (url, meta, options, callback) {
+  if (typeof options === 'function') {
+    callback = options;
+    options = {};
+  } else {
+    options = options || {};
+  }
+
+  request({
+    url: url,
+    headers: createRequestHeaders(options),
+  }, function (err, res, body) {
     var result = {
       url: url,
       meta: meta,
@@ -279,6 +291,7 @@ var fetchBatch = function (request, callback) {
     throw new Error('Unknown input data');
   }
 
+  var options = request.options;
   var remaining = batch.length;
   var batchResult = [];
 
@@ -313,7 +326,7 @@ var fetchBatch = function (request, callback) {
       if (aws) {
         console.log('Fetching', item.url);
       }
-      fetch(item.url, item.meta || {}, handleCallback);
+      fetch(item.url, item.meta || {}, options, handleCallback);
     }
   });
 };

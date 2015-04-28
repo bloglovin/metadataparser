@@ -389,12 +389,33 @@ describe('Parselovin', function () {
 
     it('should process the webpage', function (done) {
       var mock = nock('http://example.com/')
+        .matchHeader('User-Agent', /^Parselovin\/\d+\.\d+\.\d+$/)
         .get('/')
         .reply(200, function () {
           return basicHTML;
         });
 
       parser.fetch('http://example.com/', {foo: 123}, function (err, result) {
+        mock.done();
+
+        should.not.exist(err);
+        result.should.have.property('url', 'http://example.com/');
+        result.should.have.property('meta').that.deep.equals({foo: 123});
+        result.should.have.deep.property('data.og').that.is.not.empty();
+
+        done();
+      });
+    });
+
+    it('should accept custom user-agent', function (done) {
+      var mock = nock('http://example.com/')
+        .matchHeader('User-Agent', /^Test\/1\.0 Parselovin\/\d+\.\d+\.\d+$/)
+        .get('/')
+        .reply(200, function () {
+          return basicHTML;
+        });
+
+      parser.fetch('http://example.com/', {foo: 123}, {userAgent: 'Test/1.0'}, function (err, result) {
         mock.done();
 
         should.not.exist(err);
@@ -441,6 +462,7 @@ describe('Parselovin', function () {
 
     it('should process the webpages', function (done) {
       var mock = nock('http://example.com/')
+        .matchHeader('User-Agent', /^Parselovin\/\d+\.\d+\.\d+$/)
         .get('/foo')
         .reply(200, function () {
           return basicHTML;
@@ -455,6 +477,44 @@ describe('Parselovin', function () {
           {url: 'http://example.com/foo', meta: {foo: 123}},
           {url: 'http://example.com/bar', meta: {bar: 456}},
         ]
+      }, function (result) {
+        mock.done();
+
+        result.should.be.an('array').with.a.lengthOf(2);
+
+        result.should.have.deep.property('[0].err', null);
+        result.should.have.deep.property('[0].result.url', 'http://example.com/foo');
+        result.should.have.deep.property('[0].result.meta').that.deep.equals({foo: 123});
+        result.should.have.deep.property('[0].result.data.og').that.is.not.empty();
+
+        result.should.have.deep.property('[1].err', null);
+        result.should.have.deep.property('[1].result.url', 'http://example.com/bar');
+        result.should.have.deep.property('[1].result.meta').that.deep.equals({bar: 456});
+        result.should.have.deep.property('[1].result.data.og').that.is.not.empty();
+        result.should.have.deep.property('[1].result.data.metaProperties').that.is.not.empty();
+
+        done();
+      });
+    });
+
+    it('should accept custom user-agent', function (done) {
+      var mock = nock('http://example.com/')
+        .matchHeader('User-Agent', /^Test\/1\.0 Parselovin\/\d+\.\d+\.\d+$/)
+        .get('/foo')
+        .reply(200, function () {
+          return basicHTML;
+        })
+        .get('/bar')
+        .reply(200, function () {
+          return bigExampleHTML;
+        });
+
+      parser.fetchBatch({
+        batch: [
+          {url: 'http://example.com/foo', meta: {foo: 123}},
+          {url: 'http://example.com/bar', meta: {bar: 456}},
+        ],
+        options: {userAgent: 'Test/1.0'},
       }, function (result) {
         mock.done();
 
