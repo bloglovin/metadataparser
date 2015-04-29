@@ -1,9 +1,14 @@
 {
-  "name": "parselovin",
+  "name": "metadataparser",
   "version": "1.0.0",
-  "description": "Parses the metadata of a web page to enable link previews / embeds",
+  "description": "Parses the metadata of a web page. Useful for eg. link previews / embeds",
   "private": true,
   "author": "Pelle Wessman <pelle@bloglovin.com>",
+  "homepage": "https://github.com/bloglovin/metadataparser",
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/bloglovin/metadataparser.git"
+  },
   "dependencies": {
     "aws-sdk": "^2.1.8",
     "cheerio": "^0.18.0",
@@ -16,6 +21,7 @@
   },
   "devDependencies": {
     "chai": "^1.10.0",
+    "escape-string-regexp": "^1.0.3",
     "grunt": "^0.4.5",
     "husky": "^0.7.0",
     "istanbul": "^0.3.13",
@@ -23,5 +29,5 @@
     "mocha": "^2.2.4",
     "nock": "^0.57.0",
     "sinon": "^1.12.1"
-}
+  }
 }

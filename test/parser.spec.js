@@ -370,6 +370,8 @@ describe('Parselovin', function () {
     // Should adhere to http://tools.ietf.org/html/rfc5988 and parse both HTTP headers and HTML link-tags
     it('should parse link relations from all valid locations');
 
+    it('should make a conclusion on the recommended image to use');
+
     //TODO: Parse for any kind of image to support eg: http://lusttforlife.com/style-file/lust-for-leaves/
     //      Perhaps look for images in role="main" / article and try to find the one with largest defined size?
     //      Could possibly also look for first .hentry and the image in there?
@@ -377,198 +379,203 @@ describe('Parselovin', function () {
     //TODO: Parse microformats 2 data and check for the .u-photo class?
   });
 
-  describe('fetch', function () {
+  describe('fetch methods', function () {
+    var escapeStringRegexp = require('escape-string-regexp');
+
+    var defaultUserAgentRegExp, testUserAgentRegExp;
 
     beforeEach(function () {
       nock.disableNetConnect();
+
+      defaultUserAgentRegExp = 'metadataparser\\/\\d+\\.\\d+\\.\\d+ ' + escapeStringRegexp('(https://github.com/bloglovin/metadataparser)') + '$';
+      testUserAgentRegExp = escapeStringRegexp('Test/1.0 ') + defaultUserAgentRegExp;
+
+      defaultUserAgentRegExp = new RegExp('^' + defaultUserAgentRegExp);
+      testUserAgentRegExp = new RegExp('^' + testUserAgentRegExp);
     });
 
     afterEach(function () {
       nock.cleanAll();
     });
 
-    it('should process the webpage', function (done) {
-      var mock = nock('http://example.com/')
-        .matchHeader('User-Agent', /^Parselovin\/\d+\.\d+\.\d+$/)
-        .get('/')
-        .reply(200, function () {
-          return basicHTML;
+    describe('fetch', function () {
+
+      it('should process the webpage', function (done) {
+        var mock = nock('http://example.com/')
+          .matchHeader('User-Agent', defaultUserAgentRegExp)
+          .get('/')
+          .reply(200, function () {
+            return basicHTML;
+          });
+
+        parser.fetch('http://example.com/', {foo: 123}, function (err, result) {
+          mock.done();
+
+          should.not.exist(err);
+          result.should.have.property('url', 'http://example.com/');
+          result.should.have.property('meta').that.deep.equals({foo: 123});
+          result.should.have.deep.property('data.og').that.is.not.empty();
+
+          done();
         });
-
-      parser.fetch('http://example.com/', {foo: 123}, function (err, result) {
-        mock.done();
-
-        should.not.exist(err);
-        result.should.have.property('url', 'http://example.com/');
-        result.should.have.property('meta').that.deep.equals({foo: 123});
-        result.should.have.deep.property('data.og').that.is.not.empty();
-
-        done();
       });
-    });
 
-    it('should accept custom user-agent', function (done) {
-      var mock = nock('http://example.com/')
-        .matchHeader('User-Agent', /^Test\/1\.0 Parselovin\/\d+\.\d+\.\d+$/)
-        .get('/')
-        .reply(200, function () {
-          return basicHTML;
+      it('should accept custom user-agent', function (done) {
+        var mock = nock('http://example.com/')
+          .matchHeader('User-Agent', testUserAgentRegExp)
+          .get('/')
+          .reply(200, function () {
+            return basicHTML;
+          });
+
+        parser.fetch('http://example.com/', {foo: 123}, {userAgent: 'Test/1.0'}, function (err, result) {
+          mock.done();
+
+          should.not.exist(err);
+          result.should.have.property('url', 'http://example.com/');
+          result.should.have.property('meta').that.deep.equals({foo: 123});
+          result.should.have.deep.property('data.og').that.is.not.empty();
+
+          done();
         });
-
-      parser.fetch('http://example.com/', {foo: 123}, {userAgent: 'Test/1.0'}, function (err, result) {
-        mock.done();
-
-        should.not.exist(err);
-        result.should.have.property('url', 'http://example.com/');
-        result.should.have.property('meta').that.deep.equals({foo: 123});
-        result.should.have.deep.property('data.og').that.is.not.empty();
-
-        done();
       });
-    });
 
-    it('should send an error on non-2xx response', function (done) {
-      var mock = nock('http://example.com/')
-        .get('/')
-        .reply(404, function () {
-          return basicHTML;
+      it('should send an error on non-2xx response', function (done) {
+        var mock = nock('http://example.com/')
+          .get('/')
+          .reply(404, function () {
+            return basicHTML;
+          });
+
+        parser.fetch('http://example.com/', {foo: 123}, function (err, result) {
+          mock.done();
+
+          should.exist(err);
+          err.should.equal('Invalid response. Code 404');
+
+          result.should.have.property('url', 'http://example.com/');
+          result.should.have.property('meta').that.deep.equals({foo: 123});
+          result.should.not.have.property('data');
+
+          done();
         });
-
-      parser.fetch('http://example.com/', {foo: 123}, function (err, result) {
-        mock.done();
-
-        should.exist(err);
-        err.should.equal('Invalid response. Code 404');
-
-        result.should.have.property('url', 'http://example.com/');
-        result.should.have.property('meta').that.deep.equals({foo: 123});
-        result.should.not.have.property('data');
-
-        done();
       });
+
     });
 
-  });
+    describe('fetchBatch', function () {
 
-  describe('fetchBatch', function () {
+      it('should process the webpages', function (done) {
+        var mock = nock('http://example.com/')
+          .matchHeader('User-Agent', defaultUserAgentRegExp)
+          .get('/foo')
+          .reply(200, function () {
+            return basicHTML;
+          })
+          .get('/bar')
+          .reply(200, function () {
+            return bigExampleHTML;
+          });
 
-    beforeEach(function () {
-      nock.disableNetConnect();
-    });
+        parser.fetchBatch({
+          batch: [
+            {url: 'http://example.com/foo', meta: {foo: 123}},
+            {url: 'http://example.com/bar', meta: {bar: 456}},
+          ]
+        }, function (result) {
+          mock.done();
 
-    afterEach(function () {
-      nock.cleanAll();
-    });
+          result.should.be.an('array').with.a.lengthOf(2);
 
-    it('should process the webpages', function (done) {
-      var mock = nock('http://example.com/')
-        .matchHeader('User-Agent', /^Parselovin\/\d+\.\d+\.\d+$/)
-        .get('/foo')
-        .reply(200, function () {
-          return basicHTML;
-        })
-        .get('/bar')
-        .reply(200, function () {
-          return bigExampleHTML;
+          result.should.have.deep.property('[0].err', null);
+          result.should.have.deep.property('[0].result.url', 'http://example.com/foo');
+          result.should.have.deep.property('[0].result.meta').that.deep.equals({foo: 123});
+          result.should.have.deep.property('[0].result.data.og').that.is.not.empty();
+
+          result.should.have.deep.property('[1].err', null);
+          result.should.have.deep.property('[1].result.url', 'http://example.com/bar');
+          result.should.have.deep.property('[1].result.meta').that.deep.equals({bar: 456});
+          result.should.have.deep.property('[1].result.data.og').that.is.not.empty();
+          result.should.have.deep.property('[1].result.data.metaProperties').that.is.not.empty();
+
+          done();
         });
-
-      parser.fetchBatch({
-        batch: [
-          {url: 'http://example.com/foo', meta: {foo: 123}},
-          {url: 'http://example.com/bar', meta: {bar: 456}},
-        ]
-      }, function (result) {
-        mock.done();
-
-        result.should.be.an('array').with.a.lengthOf(2);
-
-        result.should.have.deep.property('[0].err', null);
-        result.should.have.deep.property('[0].result.url', 'http://example.com/foo');
-        result.should.have.deep.property('[0].result.meta').that.deep.equals({foo: 123});
-        result.should.have.deep.property('[0].result.data.og').that.is.not.empty();
-
-        result.should.have.deep.property('[1].err', null);
-        result.should.have.deep.property('[1].result.url', 'http://example.com/bar');
-        result.should.have.deep.property('[1].result.meta').that.deep.equals({bar: 456});
-        result.should.have.deep.property('[1].result.data.og').that.is.not.empty();
-        result.should.have.deep.property('[1].result.data.metaProperties').that.is.not.empty();
-
-        done();
       });
-    });
 
-    it('should accept custom user-agent', function (done) {
-      var mock = nock('http://example.com/')
-        .matchHeader('User-Agent', /^Test\/1\.0 Parselovin\/\d+\.\d+\.\d+$/)
-        .get('/foo')
-        .reply(200, function () {
-          return basicHTML;
-        })
-        .get('/bar')
-        .reply(200, function () {
-          return bigExampleHTML;
+      it('should accept custom user-agent', function (done) {
+        var mock = nock('http://example.com/')
+          .matchHeader('User-Agent', testUserAgentRegExp)
+          .get('/foo')
+          .reply(200, function () {
+            return basicHTML;
+          })
+          .get('/bar')
+          .reply(200, function () {
+            return bigExampleHTML;
+          });
+
+        parser.fetchBatch({
+          batch: [
+            {url: 'http://example.com/foo', meta: {foo: 123}},
+            {url: 'http://example.com/bar', meta: {bar: 456}},
+          ],
+          options: {userAgent: 'Test/1.0'},
+        }, function (result) {
+          mock.done();
+
+          result.should.be.an('array').with.a.lengthOf(2);
+
+          result.should.have.deep.property('[0].err', null);
+          result.should.have.deep.property('[0].result.url', 'http://example.com/foo');
+          result.should.have.deep.property('[0].result.meta').that.deep.equals({foo: 123});
+          result.should.have.deep.property('[0].result.data.og').that.is.not.empty();
+
+          result.should.have.deep.property('[1].err', null);
+          result.should.have.deep.property('[1].result.url', 'http://example.com/bar');
+          result.should.have.deep.property('[1].result.meta').that.deep.equals({bar: 456});
+          result.should.have.deep.property('[1].result.data.og').that.is.not.empty();
+          result.should.have.deep.property('[1].result.data.metaProperties').that.is.not.empty();
+
+          done();
         });
-
-      parser.fetchBatch({
-        batch: [
-          {url: 'http://example.com/foo', meta: {foo: 123}},
-          {url: 'http://example.com/bar', meta: {bar: 456}},
-        ],
-        options: {userAgent: 'Test/1.0'},
-      }, function (result) {
-        mock.done();
-
-        result.should.be.an('array').with.a.lengthOf(2);
-
-        result.should.have.deep.property('[0].err', null);
-        result.should.have.deep.property('[0].result.url', 'http://example.com/foo');
-        result.should.have.deep.property('[0].result.meta').that.deep.equals({foo: 123});
-        result.should.have.deep.property('[0].result.data.og').that.is.not.empty();
-
-        result.should.have.deep.property('[1].err', null);
-        result.should.have.deep.property('[1].result.url', 'http://example.com/bar');
-        result.should.have.deep.property('[1].result.meta').that.deep.equals({bar: 456});
-        result.should.have.deep.property('[1].result.data.og').that.is.not.empty();
-        result.should.have.deep.property('[1].result.data.metaProperties').that.is.not.empty();
-
-        done();
       });
-    });
 
-    it('should send an error on non-2xx response', function (done) {
-      var mock = nock('http://example.com/')
-        .get('/foo')
-        .reply(404, function () {
-          return basicHTML;
-        })
-        .get('/bar')
-        .reply(200, function () {
-          return bigExampleHTML;
+      it('should send an error on non-2xx response', function (done) {
+        var mock = nock('http://example.com/')
+          .get('/foo')
+          .reply(404, function () {
+            return basicHTML;
+          })
+          .get('/bar')
+          .reply(200, function () {
+            return bigExampleHTML;
+          });
+
+        parser.fetchBatch({
+          batch : [
+            {url: 'http://example.com/foo', meta: {foo: 123}},
+            {url: 'http://example.com/bar', meta: {bar: 456}},
+          ]
+        }, function (result) {
+          mock.done();
+
+          result.should.be.an('array').with.a.lengthOf(2);
+
+          result.should.have.deep.property('[0].err').that.equals('Invalid response. Code 404');
+          result.should.have.deep.property('[0].result.url', 'http://example.com/foo');
+          result.should.have.deep.property('[0].result.meta').that.deep.equals({foo: 123});
+          result.should.not.have.deep.property('[0].result.data.og');
+
+          result.should.have.deep.property('[1].err', null);
+          result.should.have.deep.property('[1].result.url', 'http://example.com/bar');
+          result.should.have.deep.property('[1].result.meta').that.deep.equals({bar: 456});
+          result.should.have.deep.property('[1].result.data.og').that.is.not.empty();
+          result.should.have.deep.property('[1].result.data.metaProperties').that.is.not.empty();
+
+          done();
         });
-
-      parser.fetchBatch({
-        batch : [
-          {url: 'http://example.com/foo', meta: {foo: 123}},
-          {url: 'http://example.com/bar', meta: {bar: 456}},
-        ]
-      }, function (result) {
-        mock.done();
-
-        result.should.be.an('array').with.a.lengthOf(2);
-
-        result.should.have.deep.property('[0].err').that.equals('Invalid response. Code 404');
-        result.should.have.deep.property('[0].result.url', 'http://example.com/foo');
-        result.should.have.deep.property('[0].result.meta').that.deep.equals({foo: 123});
-        result.should.not.have.deep.property('[0].result.data.og');
-
-        result.should.have.deep.property('[1].err', null);
-        result.should.have.deep.property('[1].result.url', 'http://example.com/bar');
-        result.should.have.deep.property('[1].result.meta').that.deep.equals({bar: 456});
-        result.should.have.deep.property('[1].result.data.og').that.is.not.empty();
-        result.should.have.deep.property('[1].result.data.metaProperties').that.is.not.empty();
-
-        done();
       });
+
     });
 
   });
