@@ -163,10 +163,6 @@ describe('Parselovin', function () {
     // Eg. Vimeo contains these
     it('should parse all App Links');
 
-    it('should parse Bloglovin widget embeds');
-
-    it('should extract frame buster headers');
-
     it('should parse base tag', function () {
       var exampleHtml = htmlEnvelope('<base href="http://www.example.org/foo/" />');
 
@@ -381,14 +377,6 @@ describe('Parselovin', function () {
 
     // Should adhere to http://tools.ietf.org/html/rfc5988 and parse both HTTP headers and HTML link-tags
     it('should parse link relations from all valid locations');
-
-    it('should make a conclusion on the recommended image to use');
-
-    //TODO: Parse for any kind of image to support eg: http://lusttforlife.com/style-file/lust-for-leaves/
-    //      Perhaps look for images in role="main" / article and try to find the one with largest defined size?
-    //      Could possibly also look for first .hentry and the image in there?
-    //      Do however _NOT_ override an RSS image with a guessed image! So be clear about guess status!
-    //TODO: Parse microformats 2 data and check for the .u-photo class?
   });
 
   describe('fetch methods', function () {
