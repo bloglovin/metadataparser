@@ -121,7 +121,7 @@ var normalizeOGData = function (og) {
   return og;
 };
 
-var extract = function (url, html) {
+var extract = function (url, html, res) {
   var $ = cheerio.load(html);
   var currentRootTag;
   var currentRootName;
@@ -129,6 +129,7 @@ var extract = function (url, html) {
   var data = {
     metaProperties: {},
     links: {},
+    headers: {},
   };
 
   var extractOG = function (localData, elem) {
@@ -238,6 +239,10 @@ var extract = function (url, html) {
     });
   });
 
+  if (res && res.headers['x-frame-options']) {
+    data.headers['x-frame-options'] = res.headers['x-frame-options'];
+  }
+
   return data;
 };
 var fetch = function (url, meta, options, callback) {
@@ -265,7 +270,7 @@ var fetch = function (url, meta, options, callback) {
       }
     }
     if (!err && !result.redirect) {
-      result.data = extract(url, body);
+      result.data = extract(url, body, res);
       if (result.data instanceof Error) {
         err = result.data;
         delete result.data;

@@ -367,6 +367,18 @@ describe('Parselovin', function () {
       expectation.calledWith('Error parsing HTML').should.be.ok();
     });
 
+    it('should parse x-frame-options headers', function () {
+      var res = {
+        headers: { 'x-frame-options': 'SAMEORIGIN' },
+      };
+
+      var result = parser.extract('http://example.com/', basicHTML, res);
+
+      result.should.be.an('object').with.property('headers').that.deep.equals({
+        'x-frame-options': 'SAMEORIGIN',
+      });
+    });
+
     // Should adhere to http://tools.ietf.org/html/rfc5988 and parse both HTTP headers and HTML link-tags
     it('should parse link relations from all valid locations');
 
