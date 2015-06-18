@@ -1,6 +1,6 @@
 {
   "name": "metadataparser",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Parses the metadata of a web page. Useful for eg. link previews / embeds",
   "private": true,
   "author": "Pelle Wessman <pelle@bloglovin.com>",
