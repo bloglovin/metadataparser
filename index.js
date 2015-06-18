@@ -8,8 +8,12 @@ var urlModule = require('url');
 var cheerio = require('cheerio');
 var request = require('request');
 var pkg = require('./package.json');
+// var JSDOMParser = require('readability/index').JSDOMParser;
+var Readability = require('readability/index').Readability;
 var defaultUserAgent = pkg.name + '/' + pkg.version + (pkg.homepage ? ' (' + pkg.homepage + ')' : '');
 var AWS, sqs;
+
+var jsdom = require('jsdom').jsdom;
 
 request = request.defaults({
   pool: {maxSockets: Infinity},
@@ -241,6 +245,38 @@ var extract = function (url, html, res) {
 
   if (res && res.headers['x-frame-options']) {
     data.headers['x-frame-options'] = res.headers['x-frame-options'];
+  }
+
+  try {
+    // var parser = new JSDOMParser();
+    var parsedUrl = urlModule.parse(url);
+
+    // var document = parser.parse($.html());
+
+    var document = jsdom($.html(), {
+      url: url,
+      features: {
+        FetchExternalResources : false
+      }
+    });
+
+    var uri = {
+      spec: parsedUrl.href,
+      host: parsedUrl.host,
+      prePath: parsedUrl.protocol + '//' + parsedUrl.host,
+      scheme: parsedUrl.protocol.substr(0, parsedUrl.protocol.indexOf(':')),
+      pathBase: parsedUrl.protocol + '//' + parsedUrl.host + parsedUrl.pathname.substr(0, parsedUrl.pathname.lastIndexOf('/') + 1)
+    };
+
+    data.readability = new Readability(uri, document).parse();
+
+    document.defaultView.close(); //JSDOM stuffs
+    console.log(data.readability);
+    if (data.readability) {
+      console.log(data.readability.content);
+    }
+  } catch (e) {
+    console.log('opps', e);
   }
 
   return data;

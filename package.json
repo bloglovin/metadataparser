@@ -12,6 +12,8 @@
   "dependencies": {
     "aws-sdk": "^2.1.8",
     "cheerio": "^0.18.0",
+    "jsdom": "^3.0.0",
+    "readability": "git+ssh://git@github.com/mozilla/readability.git#master",
     "request": "^2.51.0"
   },
   "scripts": {
