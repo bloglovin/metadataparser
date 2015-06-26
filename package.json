@@ -5,6 +5,7 @@
   "private": true,
   "author": "Pelle Wessman <pelle@bloglovin.com>",
   "homepage": "https://github.com/bloglovin/metadataparser",
+  "license": "MIT",
   "repository": {
     "type": "git",
     "url": "git://github.com/bloglovin/metadataparser.git"
