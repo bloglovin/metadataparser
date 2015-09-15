@@ -65,6 +65,19 @@ describe('Parselovin', function () {
     '<body></body>' +
     '</html>';
 
+  var hrefScrapeHTML = '<!-- Update your html tag to include the itemscope and itemtype attributes. -->' +
+    '<html itemscope itemtype="http://schema.org/Article">' +
+    '<head>' +
+    '</head>' +
+    '<body>' +
+    '<a href="http://bit.ly/1FmW9j5"></a>' +
+    '<div id="testdiv"/>' +
+    '<a href="http://bit.ly/1FmW9j5"></a>' +
+    '<a href="http://bit.ly/1JTcA7z"></a>' +
+    '<img src="https://upload.wikimedia.org/wikipedia/en/6/62/Kermit_the_Frog.jpg">' +
+    '</body>' +
+    '</html>';
+
   describe('extract', function () {
     var mockedConsole;
 
@@ -294,6 +307,15 @@ describe('Parselovin', function () {
         canonical: [{href: 'http://example.com/2015/01/entry-name/'}],
         author: [{href: 'http://example.com/', title: 'Bob Smith', type: 'text/html'}],
       });
+    });
+
+    it('should get all href links', function () {
+      var result = parser.extract('http://example.com/', hrefScrapeHTML);
+      result.should.be.an('object').with.property('hrefs').that.deep.equals([
+        'http://bit.ly/1FmW9j5',
+        'http://bit.ly/1FmW9j5',
+        'http://bit.ly/1JTcA7z',
+      ]);
     });
 
     it('should lower case link relations', function () {
