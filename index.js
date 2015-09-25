@@ -4,7 +4,6 @@
 'use strict';
 
 var urlModule = require('url');
-
 var cheerio = require('cheerio');
 var request = require('request');
 var pkg = require('./package.json');
@@ -130,6 +129,7 @@ var extract = function (url, html, res) {
     metaProperties: {},
     links: {},
     headers: {},
+    hrefs: []
   };
 
   var extractOG = function (localData, elem) {
@@ -237,6 +237,11 @@ var extract = function (url, html, res) {
       data.links[relation] = data.links[relation]  || [];
       data.links[relation].push(value);
     });
+  });
+
+  $('a').each(function () {
+    var href = $(this).attr('href');
+    data.hrefs.push(href);
   });
 
   if (res && res.headers['x-frame-options']) {

@@ -65,6 +65,19 @@ describe('Parselovin', function () {
     '<body></body>' +
     '</html>';
 
+  var hrefScrapeHTML = '<!-- Update your html tag to include the itemscope and itemtype attributes. -->' +
+    '<html itemscope itemtype="http://schema.org/Article">' +
+    '<head>' +
+    '</head>' +
+    '<body>' +
+    '<a href="http://bit.ly/1FmW9j5"></a>' +
+    '<div id="testdiv"/>' +
+    '<a href="http://bit.ly/1FmW9j5"></a>' +
+    '<a href="http://bit.ly/1JTcA7z"></a>' +
+    '<img src="https://upload.wikimedia.org/wikipedia/en/6/62/Kermit_the_Frog.jpg">' +
+    '</body>' +
+    '</html>';
+
   describe('extract', function () {
     var mockedConsole;
 
@@ -296,6 +309,15 @@ describe('Parselovin', function () {
       });
     });
 
+    it('should get all href links', function () {
+      var result = parser.extract('http://example.com/', hrefScrapeHTML);
+      result.should.be.an('object').with.property('hrefs').that.deep.equals([
+        'http://bit.ly/1FmW9j5',
+        'http://bit.ly/1FmW9j5',
+        'http://bit.ly/1JTcA7z',
+      ]);
+    });
+
     it('should lower case link relations', function () {
       var exampleHtml = htmlEnvelope(
         '<link rel="HOME aLternate" href="/english.xml" />' +
@@ -331,6 +353,7 @@ describe('Parselovin', function () {
     });
 
     it('should not crash on recursion error', function () {
+      this.timeout(5000);
       // "RangeError: Maximum call stack size exceeded" should not crash the script
 
       var repeat = function (data, count) {
@@ -341,7 +364,7 @@ describe('Parselovin', function () {
         return result;
       };
 
-      var length = 10000;
+      var length = 100000;
       var exampleHtml = htmlEnvelope('', repeat('<div><p>Test</p>', length) + repeat('</div>', length));
 
       var expectation = mockedConsole.expects('log').atLeast(1);
@@ -356,7 +379,6 @@ describe('Parselovin', function () {
 
       should.not.exist(exception);
       should.exist(result);
-
       result.should.be.instanceof(RangeError).with.property('message').that.has.string('call stack size');
 
       mockedConsole.verify();
