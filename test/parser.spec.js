@@ -353,6 +353,7 @@ describe('Parselovin', function () {
     });
 
     it('should not crash on recursion error', function () {
+      this.timeout(5000);
       // "RangeError: Maximum call stack size exceeded" should not crash the script
 
       var repeat = function (data, count) {
@@ -363,7 +364,7 @@ describe('Parselovin', function () {
         return result;
       };
 
-      var length = 10000;
+      var length = 100000;
       var exampleHtml = htmlEnvelope('', repeat('<div><p>Test</p>', length) + repeat('</div>', length));
 
       var expectation = mockedConsole.expects('log').atLeast(1);
@@ -378,7 +379,6 @@ describe('Parselovin', function () {
 
       should.not.exist(exception);
       should.exist(result);
-
       result.should.be.instanceof(RangeError).with.property('message').that.has.string('call stack size');
 
       mockedConsole.verify();

@@ -21,7 +21,7 @@ var ogTypes = [
   'music',
   'article',
   'book',
-  'profile'
+  'profile',
 ];
 
 var sendAWSResponse = function (aws, result, callback) {
@@ -121,7 +121,6 @@ var normalizeOGData = function (og) {
 };
 
 var extract = function (url, html, res) {
-
   var $ = cheerio.load(html);
   var currentRootTag;
   var currentRootName;
